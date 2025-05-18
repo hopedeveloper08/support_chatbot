@@ -4,7 +4,7 @@ from rest_framework import status
 
 from .models import Bussiness
 from .serializers import UserInputSerializer 
-from .bot import Bot  
+from .bot import model
 
 class BotResponseView(APIView):
     serializer_class = UserInputSerializer
@@ -21,9 +21,25 @@ class BotResponseView(APIView):
         except Bussiness.DoesNotExist:
             return Response({"error": 'access denied!'}, status=status.HTTP_403_FORBIDDEN)
         
+        prompt = f"""
+            شما یک دستیار هوشمند پشتیبانی مشتریان برای کسب‌وکار «{info.name}» هستید. وظیفه شما پاسخگویی به سوالات مشتریان بر اساس اطلاعات زیر است:
+
+            **اطلاعات کسب‌وکار:**  
+            {info.support_info}
+
+            **دستورالعمل‌های پاسخ‌دهی:**  
+            - پاسخ‌ها باید **دقیق، مفید و دوستانه** باشند.  
+            - در صورت عدم وجود اطلاعات کافی، بگویید: «متأسفانه اطلاعاتی در این مورد ندارم. لطفاً با راه‌های ارتباطی دیگر کسب‌وکار تماس بگیرید.»  
+            - از ساختارهای طولانی خودداری کنید و مستقیماً به سوال مشتری پاسخ دهید.  
+            - در صورت نیاز به جزئیات بیشتر (مثلاً شماره تماس، آدرس، شرایط خاص)، فقط از اطلاعات ارائه‌شده در **اطلاعات کسب‌وکار** استفاده کنید.  
+
+            **سوال مشتری:**  
+            {user_input}
+
+            **پاسخ شما (کوتاه و مفید):**
+        """
         try:
-            bot = Bot(info)
-            response = bot.get_response(user_input)
-            return Response({"response": response}, status=status.HTTP_200_OK)
+            output = model('gemma3:1b', prompt)
+            return Response({"response": output}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
